@@ -13,18 +13,21 @@
   "dependencies": {
     "@prisma/client": "^4.11.0",
     "@t3-oss/env-nextjs": "^0.2.1",
-    "@tanstack/react-query": "^4.28.0",
+    "@tanstack/react-query": "^4.29.7",
     "@trpc/client": "^10.18.0",
     "@trpc/next": "^10.18.0",
     "@trpc/react-query": "^10.18.0",
     "@trpc/server": "^10.18.0",
+    "axios": "^1.4.0",
     "next": "^13.2.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-tooltip": "^5.13.1",
     "superjson": "1.12.2",
     "zod": "^3.21.4"
   },
   "devDependencies": {
+    "@tanstack/eslint-plugin-query": "^4.29.9",
     "@types/eslint": "^8.21.3",
     "@types/node": "^18.15.5",
     "@types/react": "^18.0.28",

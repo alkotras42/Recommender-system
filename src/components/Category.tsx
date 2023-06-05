@@ -4,6 +4,10 @@ import React, {useEffect, useState} from 'react';
 import {IComponents} from '~/pages';
 import {api} from '~/utils/api';
 import RecomendedProduct from './RecomendedProduct';
+import {NormalizeArray} from '~/helpers/NormalizeArray';
+import {addWeightToProductststs} from '~/helpers/addWeightToProducts';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {getCPUPriceByGPU} from '~/helpers/api/getPrices';
 
 interface ICategory extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
   categoryName: string;
@@ -24,13 +28,14 @@ const Category = ({categoryName, selectedComponents, setSelectedComponents}: ICa
     {enabled: false}
   );
 
+  const queryClient = useQueryClient();
+
   const handleCategoryClick = (): void => {
     setActiveList((prev) => !prev);
 
     if (!products) {
       refetch();
     }
-    console.log(products);
   };
 
   const handleAddProduct = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, product: Product): void => {
@@ -43,8 +48,6 @@ const Category = ({categoryName, selectedComponents, setSelectedComponents}: ICa
       }
       return selectedComponents;
     });
-
-    console.log(selectedComponents);
   };
 
   function handleRemoveProduct(event: React.MouseEvent<HTMLParagraphElement, MouseEvent>): void {
@@ -66,18 +69,10 @@ const Category = ({categoryName, selectedComponents, setSelectedComponents}: ICa
         if (!selectedComponents['CPU']) return null;
         // Высчитываем ожидаемую цену видеокарты на основе цены выбранного процессора
         const predictedGPUPrice = 6.0975 * Math.pow(selectedComponents['CPU'].price, 0.9117);
-        let predictedGPUProducts;
+
         if (!products) return null;
-        // Создаем копию массива товаров
-        predictedGPUProducts = [...products];
-        // Добавляем товару атрибут веса, который вычисляется на разнице между ожидаемым числом товара и реальным
-        predictedGPUProducts.map((product) => {
-          //@ts-ignore
-          product.weight =
-            product.price > predictedGPUPrice ? predictedGPUPrice / product.price : product.price / predictedGPUPrice;
-        });
-        //@ts-ignore
-        predictedGPUProducts.sort((a, b) => b.weight - a.weight);
+        const predictedGPUProducts = addWeightToProductststs(products, predictedGPUPrice);
+
         return predictedGPUProducts
           .slice(0, 4)
           .map((product) => (
@@ -90,20 +85,10 @@ const Category = ({categoryName, selectedComponents, setSelectedComponents}: ICa
           ));
       case 'Материнские платы':
         if (!selectedComponents['CPU']) return null;
-        const predictedMotherboardPrice = 19.875 * Math.pow(selectedComponents['CPU'].price, 0.6481);
-        let predictedMotherboardProducts;
+        const predictedMotherBoardPrice = 19.875 * Math.pow(selectedComponents['CPU'].price, 0.6481);
         if (!products) return null;
-        predictedMotherboardProducts = [...products];
-        predictedMotherboardProducts.map((product) => {
-          //@ts-ignore
-          product.weight =
-            product.price > predictedMotherboardPrice
-              ? predictedMotherboardPrice / product.price
-              : product.price / predictedMotherboardPrice;
-        });
-        //@ts-ignore
-        predictedMotherboardProducts.sort((a, b) => b.weight - a.weight);
-        return predictedMotherboardProducts
+        const predictedMotherBoardProducts = addWeightToProductststs(products, predictedMotherBoardPrice);
+        return predictedMotherBoardProducts
           .slice(0, 4)
           .map((product) => (
             <RecomendedProduct
@@ -114,21 +99,22 @@ const Category = ({categoryName, selectedComponents, setSelectedComponents}: ICa
             />
           ));
       case 'Оперативная память':
-        if (!selectedComponents['CPU'] || !selectedComponents['GPU']) return null;
-        const xDram = selectedComponents['CPU'].price + selectedComponents['GPU'].price;
-        const predictedDRAMPrice = 2e-11 * Math.pow(xDram, 3) - 2e-6 * Math.pow(xDram, 2) + 0.1503 * xDram + 804.67;
-        let predictedDRAMProducts;
+        let predictedDRAMPrice = 0;
+        let xDram = 0;
+        if (!selectedComponents['CPU'] && !selectedComponents['GPU']) return null;
+        else if (selectedComponents['CPU'] && selectedComponents['GPU']) {
+          xDram = selectedComponents['CPU'].price + selectedComponents['GPU'].price;
+          predictedDRAMPrice = 2e-11 * Math.pow(xDram, 3) - 2e-6 * Math.pow(xDram, 2) + 0.1503 * xDram + 804.67;
+        } else if (selectedComponents['CPU']) {
+          xDram = selectedComponents['CPU'].price;
+          predictedDRAMPrice = 5e-7 * Math.pow(xDram, 2) + 0.2652 * xDram + 1491;
+        } else if (selectedComponents['GPU']) {
+          xDram = selectedComponents['GPU'].price;
+          predictedDRAMPrice = 4e-7 * Math.pow(xDram, 2) + 0.0677 * xDram + 2602;
+        }
+
         if (!products) return null;
-        predictedDRAMProducts = [...products];
-        predictedDRAMProducts.map((product) => {
-          //@ts-ignore
-          product.weight =
-            product.price > predictedDRAMPrice
-              ? predictedDRAMPrice / product.price
-              : product.price / predictedDRAMPrice;
-        });
-        //@ts-ignore
-        predictedDRAMProducts.sort((a, b) => b.weight - a.weight);
+        const predictedDRAMProducts = addWeightToProductststs(products, predictedDRAMPrice);
         return predictedDRAMProducts
           .slice(0, 4)
           .map((product) => (
@@ -143,18 +129,8 @@ const Category = ({categoryName, selectedComponents, setSelectedComponents}: ICa
         if (!selectedComponents['GPU']) return null;
         const xPower = selectedComponents['GPU'].price;
         const predictedPowerPrice = 2.3901 * Math.pow(xPower, 0.7414);
-        let predictedPowerProducts;
         if (!products) return null;
-        predictedPowerProducts = [...products];
-        predictedPowerProducts.map((product) => {
-          //@ts-ignore
-          product.weight =
-            product.price > predictedPowerPrice
-              ? predictedPowerPrice / product.price
-              : product.price / predictedPowerPrice;
-        });
-        //@ts-ignore
-        predictedPowerProducts.sort((a, b) => b.weight - a.weight);
+        const predictedPowerProducts = addWeightToProductststs(products, predictedPowerPrice);
         return predictedPowerProducts
           .slice(0, 4)
           .map((product) => (
@@ -169,19 +145,25 @@ const Category = ({categoryName, selectedComponents, setSelectedComponents}: ICa
         if (!selectedComponents['CPU']) return null;
         const xCooler = selectedComponents['CPU'].price;
         const predictedCoolerPrice = 0.1134 * Math.pow(xCooler, 1.0512);
-        let predictedCoolerProducts;
         if (!products) return null;
-        predictedCoolerProducts = [...products];
-        predictedCoolerProducts.map((product) => {
-          //@ts-ignore
-          product.weight =
-            product.price > predictedCoolerPrice
-              ? predictedCoolerPrice / product.price
-              : product.price / predictedCoolerPrice;
-        });
-        //@ts-ignore
-        predictedCoolerProducts.sort((a, b) => b.weight - a.weight);
+        const predictedCoolerProducts = addWeightToProductststs(products, predictedCoolerPrice);
         return predictedCoolerProducts
+          .slice(0, 4)
+          .map((product) => (
+            <RecomendedProduct
+              categoryName={categoryName}
+              selectedComponents={selectedComponents}
+              setSelectedComponents={setSelectedComponents}
+              product={product}
+            />
+          ));
+      case 'Корпуса':
+        if (!selectedComponents['CPU'] || !selectedComponents['GPU']) return null;
+        const xCase = selectedComponents['CPU'].price + selectedComponents['GPU'].price;
+        const predictedCasePrice = 30.61 * Math.pow(xCase, 0.4666);
+        if (!products) return null;
+        const predictedCaseProducts = addWeightToProductststs(products, predictedCasePrice);
+        return predictedCaseProducts
           .slice(0, 4)
           .map((product) => (
             <RecomendedProduct
@@ -195,8 +177,6 @@ const Category = ({categoryName, selectedComponents, setSelectedComponents}: ICa
         return null;
     }
   };
-
-  console.log(Recomendations());
 
   return (
     <div className='relative grid hover:shadow-md'>

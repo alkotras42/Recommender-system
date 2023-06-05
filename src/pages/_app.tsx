@@ -1,11 +1,17 @@
-import { type AppType } from "next/app";
+import {type AppType} from 'next/app';
 
-import { api } from "~/utils/api";
+import {api} from '~/utils/api';
+import '~/styles/globals.css';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
-import "~/styles/globals.css";
+const queryClient = new QueryClient();
 
-const MyApp: AppType = ({ Component, pageProps }) => {
-  return <Component {...pageProps} />;
+const MyApp: AppType = ({Component, pageProps}) => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Component {...pageProps} />
+    </QueryClientProvider>
+  );
 };
 
 export default api.withTRPC(MyApp);
